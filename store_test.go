@@ -2,7 +2,7 @@ package tinystore_test
 
 import (
 	"testing"
-	"github.com/D10221/tinyStore"
+	"github.com/D10221/tinystore"
 )
 
 func AsCredentialGetName(item tinystore.StoreItem) string {

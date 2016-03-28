@@ -3,7 +3,7 @@ package tinystore_test
 import (
 	"testing"
 	"fmt"
-	"github.com/D10221/tinyStore"
+	"github.com/D10221/tinystore"
 )
 
 

@@ -3,6 +3,7 @@ package tinystore_test
 import (
 	"testing"
 	"github.com/D10221/tinystore"
+	"io/ioutil"
 )
 
 // Test_ItemStoreItemAdapter
@@ -89,13 +90,41 @@ func GetStringOrPanic(m map[string]interface{} , key string) string {
 
 
 // Test_Store_json_load
-func Test_Store_json_load(t *testing.T) {
+func Test_StoreLoadsJsonFile(t *testing.T) {
 
 	store := &tinystore.SimpleStore{ Name: "SimpleStore"}
 
 	tinystore.RegisterStoreAdapter(store, tinystore.NewDefaultStoreItemAdapter(convert))
 
-	e := tinystore.LoadJson(store, "testdata/credentials.json")
+	e := tinystore.LoadJsonFile(store, "testdata/credentials.json")
+
+	if e != nil {
+		t.Error(e)
+		return
+	}
+
+	item := store.All()[0]
+	found, ok := item.(*DumyyItem)
+
+	if !ok || found.Username != "admin" {
+		t.Error("LoadJson Failed")
+	}
+
+}
+
+// Test_Store_json_load
+func Test_StoreLoadsJson(t *testing.T) {
+
+	store := &tinystore.SimpleStore{ Name: "SimpleStore"}
+
+	tinystore.RegisterStoreAdapter(store, tinystore.NewDefaultStoreItemAdapter(convert))
+
+	j, e := ioutil.ReadFile("testdata/credentials.json")
+	if e!= nil {
+		t.Error(e)
+	}
+
+	e = tinystore.LoadJson(store, j)
 
 	if e != nil {
 		t.Error(e)

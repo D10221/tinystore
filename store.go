@@ -37,25 +37,25 @@ var Always Filter = func( a StoreItem) bool {return  true }
 type Store interface {
 
 	// Load  items, replace store.items with provided items
-	Load(c ...StoreItem) error
+	Load(items ...StoreItem) error
 
 	// All items
 	All() []StoreItem
 
 	// Find first item where filter returns true
-	Find(c Filter) (StoreItem, error)
+	Find(filter Filter) (StoreItem, error)
 
 	// Add new item if valid and Key Not Exists
-	Add(credential StoreItem) error
+	Add(item StoreItem) error
 
 	// Remove Key matching Item
-	Remove(credential StoreItem) error
+	Remove(item StoreItem) error
 
 	// Empty Store
 	Clear()
 
 	// ForEach mutate item with provided mutator
-	ForEach(transform Mutator) error
+	ForEach(f Mutator) error
 
 	// RemoveWhere filter returns true
 	// Note: there is a higher order func doing the same
@@ -189,16 +189,22 @@ func RegisterStoreAdapter(store Store, adapter StoreItemAdapter)  error {
 
 
 // LoadJson
-func LoadJson(store Store,path string) error {
+func LoadJsonFile(store Store,path string) error {
 
 	bytes, e := ioutil.ReadFile(path)
 	if e != nil {
 		return e
 	}
+	return LoadJson(store, bytes)
+}
+
+
+// LoadJson
+func LoadJson(store Store,bytes []byte) error {
 
 	items:= make([]map[string]interface{}, 0)
 
-	e = json.Unmarshal(bytes, &items)
+	e := json.Unmarshal(bytes, &items)
 	if e != nil {
 		return e
 	}

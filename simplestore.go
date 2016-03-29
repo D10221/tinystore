@@ -3,8 +3,6 @@ package tinystore
 import (
 	"sync"
 	"errors"
-	"io/ioutil"
-	"encoding/json"
 )
 
 // SimpleStore implements  Store
@@ -13,8 +11,12 @@ type SimpleStore struct {
 
 	items   []StoreItem
 
-	//Converter  Un-marshal post processor
-	Adapter StoreItemAdapter
+	// Name instance name , nick name , identifier , etc...
+	Name string
+}
+
+func (store SimpleStore) GetName() string {
+	return store.Name
 }
 
 // All implements Store.All
@@ -156,23 +158,6 @@ func (s *SimpleStore) ForEachWhere(find Filter, transform Mutator) error {
 	return err
 }
 
-// LoadJson TODO; it doesn't work unmarshal to interface brings map[]
-func (store *SimpleStore) LoadJson(path string) error {
-
-	bytes, e := ioutil.ReadFile(path)
-	if e != nil {
-		return e
-	}
-	items:= make([]map[string]interface{}, 0)
-	e = json.Unmarshal(bytes, &items)
-	if e != nil {
-		return e
-	}
-
-	store.items = store.Adapter.ConvertMany(items)
-
-	return nil
-}
 
 // GetKey implements Store.GetKey
 //func (store *SimpleStore) GetKeyOf(item StoreItem) interface{} {

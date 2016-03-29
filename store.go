@@ -1,21 +1,36 @@
 package tinystore
 
+import (
+	"io/ioutil"
+	"encoding/json"
+)
+
+// StoreItem interface
 type StoreItem interface {
+	// Valid returns true if the item is valid
 	Valid() bool
+	// Validate return nil if item is valid return error if not
+	//  plan: ValidationError? can be implemented  ?
+	//  plan: Register Validators and exec all register validators ?
 	Validate() error
+	// GetKey returns something? as key , implementing Item choose what to return as key
 	GetKey() interface{}
 }
 
+// Filter returns true/false takes a StoreItem
 type Filter func (a StoreItem) bool ;
 
+// NotFilter negates a Filter
 func NotFilter(filter Filter) Filter {
 	return func(c StoreItem) bool {
 		return !filter(c)
 	}
 }
 
+// Mutator is used to mutate the input thing
 type Mutator  func(in StoreItem) (StoreItem, error );
 
+// Always is shortcut for true
 var Always Filter = func( a StoreItem) bool {return  true }
 
 // Store  minimal interface
@@ -42,13 +57,18 @@ type Store interface {
 	// ForEach mutate item with provided mutator
 	ForEach(transform Mutator) error
 
+	// RemoveWhere filter returns true
+	// Note: there is a higher order func doing the same
 	RemoveWhere(f Filter) error
 
 	// ForEachWhere filter return true , mutate item with provided mutator
+	// Note: there is a higher order ForEach func doing the same
 	ForEachWhere(f Filter,transform Mutator) error
 
-	// GetKey for item return value as key, identifier
-	// GetKeyOf(item StoreItem) interface{}
+	// GetName implements Store.GetName
+	// instance name, nick name, Identifier , etc ...
+	GetName() string
+
 }
 
 // StoreError this package error
@@ -76,6 +96,9 @@ var (
 
 	// ErrAlreadyExists item's key already in store
 	ErrAlreadyExists = NewError("Credential Already Exists", 3)
+
+	// ErrNotImplemented
+	ErrNotImplemented = NewError("Not Implemented", 4)
 )
 
 
@@ -137,7 +160,7 @@ func ForEach(store Store, mutator Mutator, filter Filter) error {
 	var e error = ErrNotFound
 	for _, item := range store.All() {
 		// Optional Filter
-		if filter ==nil || filter(item) {
+		if filter == nil || filter(item) {
 			result, err := mutator(item)
 			all = append(all, result)
 			e = err
@@ -149,22 +172,43 @@ func ForEach(store Store, mutator Mutator, filter Filter) error {
 	return e
 }
 
+var StoreAdapters = make(map[string]StoreItemAdapter)
 
-//
-//func (store *SimpleCredentialStore) FindByUserName(userName string) (StoreItem, error) {
-//	found := &Credential{}
-//	for _, credential := range store.All()[:] {
-//		if userName == credential.Username {
-//			found = credential
-//			break
-//		}
-//	}
-//	if found.Valid() {
-//		return found, nil
-//	}
-//
-//	return found, ErrNotFound
-//}
-//
+func RegisterStoreAdapter(store Store, adapter StoreItemAdapter)  error {
+	name:= store.GetName()
+	if name == "" {
+		// TODO: specific error
+		return ErrNotFound
+	}
+
+	StoreAdapters[store.GetName()] = adapter
+
+	return nil
+}
 
 
+
+// LoadJson
+func LoadJson(store Store,path string) error {
+
+	bytes, e := ioutil.ReadFile(path)
+	if e != nil {
+		return e
+	}
+
+	items:= make([]map[string]interface{}, 0)
+
+	e = json.Unmarshal(bytes, &items)
+	if e != nil {
+		return e
+	}
+
+	adapter, exists := StoreAdapters[store.GetName()]
+	if !exists {
+		return ErrNotFound
+	}
+
+	e = store.Load(adapter.ConvertMany(items)...)
+
+	return e
+}

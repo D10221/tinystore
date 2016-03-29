@@ -8,7 +8,7 @@ import (
 // Test_ItemStoreItemAdapter
 func Test_ItemStoreItemAdapter(t *testing.T) {
 
-	var adapter tinystore.StoreItemAdapter = tinystore.NewDefaultStoreItemAdapter(convert,convertMany)
+	var adapter tinystore.StoreItemAdapter = tinystore.NewDefaultStoreItemAdapter(convert)
 
 	items := []map[string]interface{}{
 		{
@@ -55,6 +55,7 @@ func Test_ItemStoreItemAdapter(t *testing.T) {
 
 
 var convert = func(item map[string]interface{}) tinystore.StoreItem {
+
 	newItem:= &DumyyItem{}
 
 	newItem.Username = GetStringOrPanic(item, "Username")
@@ -86,20 +87,16 @@ func GetStringOrPanic(m map[string]interface{} , key string) string {
 	return s
 }
 
-var convertMany = func(items []map[string]interface{}) []tinystore.StoreItem {
-	var result []tinystore.StoreItem
-	for _, item := range items[:] {
-		result = append(result, convert(item))
-	}
-	return result
-}
 
 // Test_Store_json_load
 func Test_Store_json_load(t *testing.T) {
 
-	store := &tinystore.SimpleStore{}
-	store.Adapter = tinystore.NewDefaultStoreItemAdapter(convert,convertMany)
-	e := store.LoadJson("testdata/credentials.json")
+	store := &tinystore.SimpleStore{ Name: "SimpleStore"}
+
+	tinystore.RegisterStoreAdapter(store, tinystore.NewDefaultStoreItemAdapter(convert))
+
+	e := tinystore.LoadJson(store, "testdata/credentials.json")
+
 	if e != nil {
 		t.Error(e)
 		return
@@ -109,7 +106,7 @@ func Test_Store_json_load(t *testing.T) {
 	found, ok := item.(*DumyyItem)
 
 	if !ok || found.Username != "admin" {
-		t.Error("Bad Store")
+		t.Error("LoadJson Failed")
 	}
 
 }
